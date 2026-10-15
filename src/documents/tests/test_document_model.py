@@ -4,6 +4,7 @@ from datetime import date
 from pathlib import Path
 from unittest import mock
 
+import pytest
 from django.test import TestCase
 from django.test import override_settings
 from faker import Faker
@@ -257,3 +258,77 @@ def test_suggestion_content() -> None:
     )
     doc.content = content_over_limit
     assert doc.suggestion_content == expected_cropped_content
+
+
+@pytest.mark.django_db
+class TestPublicFilenameLength:
+    @pytest.mark.parametrize(
+        ("title", "archive", "extension"),
+        [
+            pytest.param("a" * 300, False, ".jpg", id="ascii-original"),
+            pytest.param("a" * 300, True, ".pdf", id="ascii-archive"),
+            pytest.param("ä" * 200, False, ".jpg", id="multibyte-original"),
+        ],
+    )
+    def test_long_title_keeps_extension_within_limit(
+        self,
+        title: str,
+        *,
+        archive: bool,
+        extension: str,
+    ) -> None:
+        """
+        GIVEN:
+            - A document whose title alone is longer than 255 bytes
+        WHEN:
+            - The public file name is generated
+        THEN:
+            - The name fits in 255 bytes and still ends with the extension
+        """
+        doc = Document(mime_type="image/jpeg", title=title, created=date(2020, 12, 25))
+
+        name = doc.get_public_filename(archive=archive)
+
+        assert len(name.encode()) <= 255
+        assert name.endswith(extension)
+
+    def test_long_title_counters_give_distinct_names(self) -> None:
+        """
+        GIVEN:
+            - A document whose title alone is longer than 255 bytes
+        WHEN:
+            - Public file names are generated with increasing counters
+        THEN:
+            - Each counter produces a distinct name that keeps the counter
+        """
+        doc = Document(
+            mime_type="application/pdf",
+            title="ä" * 200,
+            created=date(2020, 12, 25),
+        )
+
+        names = [doc.get_public_filename(counter=counter) for counter in range(3)]
+
+        assert len(set(names)) == 3
+        assert names[1].endswith("_01.pdf")
+        assert all(len(name.encode()) <= 255 for name in names)
+
+    def test_max_bytes_bounds_name(self) -> None:
+        """
+        GIVEN:
+            - A document with a long title
+        WHEN:
+            - The public file name is generated with a smaller byte limit
+        THEN:
+            - The name fits in that limit and keeps the counter and extension
+        """
+        doc = Document(
+            mime_type="application/pdf",
+            title="a" * 300,
+            created=date(2020, 12, 25),
+        )
+
+        name = doc.get_public_filename(counter=1, max_bytes=100)
+
+        assert len(name.encode()) <= 100
+        assert name.endswith("_01.pdf")

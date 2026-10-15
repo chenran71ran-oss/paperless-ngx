@@ -157,6 +157,8 @@ class StoragePath(MatchingModel):
 
 class Document(SoftDeleteModel, ModelWithOwner):  # type: ignore[django-manager-missing]
     MAX_STORED_FILENAME_LENGTH: Final[int] = 1024
+    # Per-component limit of common filesystems (ext4, XFS, btrfs, ZFS, APFS)
+    MAX_PUBLIC_FILENAME_BYTES: Final[int] = 255
 
     correspondent = models.ForeignKey(
         Correspondent,
@@ -484,28 +486,47 @@ class Document(SoftDeleteModel, ModelWithOwner):  # type: ignore[django-manager-
     def archive_file(self):
         return Path(self.archive_path).open("rb")
 
-    def get_public_filename(self, *, archive=False, counter=0, suffix=None) -> str:
+    def get_public_filename(
+        self,
+        *,
+        archive=False,
+        counter=0,
+        suffix=None,
+        max_bytes: int = MAX_PUBLIC_FILENAME_BYTES,
+    ) -> str:
         """
         Returns a sanitized filename for the document, not including any paths.
+
+        The name fits in max_bytes (UTF-8). A title that is too long is
+        shortened, so the counter, suffix and extension are always kept.
         """
         # Root owns metadata for all versions
         context_document = (
             self.root_document if self.root_document_id is not None else self
         )
-        result = str(context_document)
 
+        tail = ""
         if counter:
-            result += f"_{counter:02}"
+            tail += f"_{counter:02}"
 
         if suffix:
-            result += suffix
+            tail += suffix
 
         if archive:
-            result += ".pdf"
+            tail += ".pdf"
         else:
-            result += self.file_type
+            tail += self.file_type
 
-        return pathvalidate.sanitize_filename(result, replacement_text="-")
+        # sanitize_filename truncates from the end, which would cut off the
+        # counter and extension, so shorten the title before appending them
+        head_bytes = max_bytes - len(tail.encode())
+        head = str(context_document).encode()[:head_bytes].decode(errors="ignore")
+
+        return pathvalidate.sanitize_filename(
+            head + tail,
+            replacement_text="-",
+            max_len=max_bytes,
+        )
 
     @property
     def file_type(self):
