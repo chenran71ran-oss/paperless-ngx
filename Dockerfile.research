@@ -1,0 +1,16 @@
+FROM node:24-trixie-slim@sha256:173f125896c3b47ddf056734c7ea789d04595a6a08769a8f78e0df642781fb66 AS ui
+WORKDIR /src/src-ui
+COPY src-ui/package.json src-ui/pnpm-lock.yaml src-ui/pnpm-workspace.yaml src-ui/.npmrc ./
+RUN corepack enable && pnpm install --frozen-lockfile
+COPY src-ui ./
+ENV NODE_OPTIONS=--max-old-space-size=3072
+RUN ./node_modules/.bin/ng build --configuration production,research-local
+
+FROM ghcr.io/paperless-ngx/paperless-ngx@sha256:cb91bfb468e63025a9d10c01b54c33665113668eee61b490db96de19b860b9c4
+COPY --chown=1000:1000 src/documents/research.py /usr/src/paperless/src/documents/research.py
+COPY --chown=1000:1000 src/documents/research_exchange.py /usr/src/paperless/src/documents/research_exchange.py
+COPY --chown=1000:1000 src/documents/research_annotations.py /usr/src/paperless/src/documents/research_annotations.py
+COPY --chown=1000:1000 src/paperless/urls.py /usr/src/paperless/src/paperless/urls.py
+RUN rm -rf /usr/src/paperless/src/documents/static/frontend
+COPY --from=ui --chown=1000:1000 /src/src/documents/static/frontend/ /usr/src/paperless/src/documents/static/frontend/
+RUN PAPERLESS_SECRET_KEY=build-time-dummy python3 manage.py collectstatic --clear --no-input --link --verbosity 0

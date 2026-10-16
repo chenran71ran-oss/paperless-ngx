@@ -65,9 +65,7 @@
             "browser": "src/main.ts",
             "outputHashing": "none",
             "index": "src/index.html",
-            "polyfills": [
-              "src/polyfills.ts"
-            ],
+            "polyfills": ["src/polyfills.ts"],
             "tsConfig": "tsconfig.app.json",
             "localize": true,
             "assets": [
@@ -96,25 +94,30 @@
                 "glob": "**/*",
                 "input": "node_modules/pdfjs-dist/cmaps/",
                 "output": "/assets/cmaps/"
+              },
+              {
+                "glob": "pdfium.wasm",
+                "input": "node_modules/@embedpdf/snippet/dist/",
+                "output": "/assets/embedpdf/"
+              },
+              {
+                "glob": "NotoSansHans-Regular.otf",
+                "input": "node_modules/.pnpm/@embedpdf+fonts-sc@1.0.0/node_modules/@embedpdf/fonts-sc/fonts/",
+                "output": "/assets/embedpdf/fonts/"
               }
             ],
             "styles": [
-              "src/styles.scss"
+              "src/styles.scss",
+              "node_modules/katex/dist/katex.min.css"
             ],
             "scripts": [],
-            "allowedCommonJsDependencies": [
-              "file-saver",
-              "mime-names",
-              "utif"
-            ],
+            "allowedCommonJsDependencies": ["file-saver", "mime-names", "utif"],
             "extractLicenses": false,
             "sourceMap": true,
             "optimization": false,
             "namedChunks": true,
             "stylePreprocessorOptions": {
-              "includePaths": [
-                "."
-              ]
+              "includePaths": ["."]
             }
           },
           "configurations": {
@@ -146,6 +149,9 @@
                 }
               ]
             },
+            "research-local": {
+              "localize": ["en-US", "zh-CN"]
+            },
             "e2e": {
               "fileReplacements": [
                 {
@@ -153,14 +159,10 @@
                   "with": "src/environments/environment.e2e.ts"
                 }
               ],
-              "localize": [
-                "en-US"
-              ]
+              "localize": ["en-US"]
             },
             "en-US": {
-              "localize": [
-                "en-US"
-              ]
+              "localize": ["en-US"]
             }
           },
           "defaultConfiguration": ""
@@ -197,19 +199,14 @@
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": [
-              "src/**/*.ts",
-              "src/**/*.html"
-            ]
+            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
           }
         }
       }
     }
   },
   "cli": {
-    "schematicCollections": [
-      "@angular-eslint/schematics"
-    ],
+    "schematicCollections": ["@angular-eslint/schematics"],
     "analytics": false,
     "packageManager": "pnpm"
   },

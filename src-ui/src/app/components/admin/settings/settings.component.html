@@ -35,7 +35,7 @@
   }
 </pngx-page-header>
 
-<form [formGroup]="settingsForm" (ngSubmit)="saveSettings()">
+<form [formGroup]="settingsForm" (ngSubmit)="activeNavID() !== SettingsNavIDs.Research && saveSettings()">
 
   <ul ngbNav #nav="ngbNav" (navChange)="onNavChange($event)" [activeId]="activeNavID()" (activeIdChange)="activeNavID.set($event)" class="nav-tabs">
     <li [ngbNavItem]="SettingsNavIDs.General">
@@ -434,10 +434,18 @@
 
       </ng-template>
     </li>
+    <li [ngbNavItem]="SettingsNavIDs.Research" *pngxIfPermissions="{ action: PermissionAction.View, type: PermissionType.Document }">
+      <a ngbNavLink>研究</a>
+      <ng-template ngbNavContent>
+        <pngx-research-settings></pngx-research-settings>
+      </ng-template>
+    </li>
   </ul>
 
   <div [ngbNavOutlet]="nav" class="border-start border-end border-bottom p-3 mb-3 shadow-sm"></div>
 
-  <button type="button" (click)="reset()" class="btn btn-outline-secondary mb-2" [disabled]="(isDirty$ | async) === false" i18n>Cancel</button>
-  <button type="submit" class="btn btn-primary ms-2 mb-2" [disabled]="(isDirty$ | async) === false" i18n>Save</button>
+  @if (activeNavID() !== SettingsNavIDs.Research) {
+    <button type="button" (click)="reset()" class="btn btn-outline-secondary mb-2" [disabled]="(isDirty$ | async) === false" i18n>Cancel</button>
+    <button type="submit" class="btn btn-primary ms-2 mb-2" [disabled]="(isDirty$ | async) === false" i18n>Save</button>
+  }
 </form>

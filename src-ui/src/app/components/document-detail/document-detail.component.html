@@ -1,4 +1,4 @@
-<pngx-page-header [title]="title()" [id]="documentId()">
+<pngx-page-header [hidden]="activeNavID() === DocumentDetailNavIDs.Research" [title]="title()" [id]="documentId()">
   @if (archiveContentRenderType === ContentRenderType.PDF && !useNativePdfViewer) {
     @if (previewNumPages()) {
       <div class="input-group input-group-sm ms-2 d-none d-md-flex">
@@ -109,11 +109,12 @@
 </pngx-page-header>
 
 <div class="row">
-  <div class="col-md-6 col-xl-5 mb-4">
+  <div [class]="activeNavID() === DocumentDetailNavIDs.Research ? 'col-12' : 'col-md-6 col-xl-5 mb-4'">
 
     <form [formGroup]='documentForm' (ngSubmit)="save()">
 
-      <div class="btn-toolbar justify-content-end mb-1 pb-3 gap-2 row-gap-2 border-bottom">
+      <div [hidden]="activeNavID() === DocumentDetailNavIDs.Research" class="btn-toolbar justify-content-end mb-1 pb-3 gap-2 row-gap-2 border-bottom">
+        @if(documentId()) { <pngx-research-membership [documentId]="documentId()"></pngx-research-membership> }
         <div class="btn-group me-auto">
           <button type="button" class="btn btn-sm btn-outline-secondary" i18n-title title="Close" (click)="close()">
             <i-bs width="1.2em" height="1.2em" name="x"></i-bs>
@@ -305,6 +306,15 @@
           </ng-template>
         </li>
 
+        <li [ngbNavItem]="DocumentDetailNavIDs.Research">
+          <a ngbNavLink>研究阅读</a>
+          <ng-template ngbNavContent>
+            @if (documentId()) {
+              <pngx-research-reader [documentId]="documentId()" [documentTitle]="title()"></pngx-research-reader>
+            }
+          </ng-template>
+        </li>
+
         <li [ngbNavItem]="DocumentDetailNavIDs.Metadata">
           <a ngbNavLink i18n>Metadata</a>
           <ng-template ngbNavContent>
@@ -451,7 +461,7 @@
     </form>
   </div>
 
-  <div class="col-md-6 col-xl-7 mb-3 d-none d-md-block position-relative" #pdfPreview>
+  <div [class.d-md-block]="activeNavID() !== DocumentDetailNavIDs.Research" class="col-md-6 col-xl-7 mb-3 d-none position-relative" #pdfPreview>
     <ng-container *ngTemplateOutlet="previewContent"></ng-container>
   </div>
 
@@ -483,7 +493,7 @@
       </div>
     </div>
   </div>
-  @if (document()) {
+  @if (document() && activeNavID() !== DocumentDetailNavIDs.Research) {
     @switch (archiveContentRenderType) {
       @case (ContentRenderType.PDF) {
         @if (!useNativePdfViewer) {

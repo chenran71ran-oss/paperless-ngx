@@ -17,6 +17,10 @@ from drf_spectacular.views import SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
 
 from documents.views import BulkDownloadView
+from documents.research import ResearchView
+from documents.research_exchange import ResearchExchangeView
+from documents.research_annotations import ResearchAnnotationsView
+from documents.research import ResearchAuthorizeView, ResearchLibraryView, ResearchTasksView, ResearchSettingsView
 from documents.views import BulkEditObjectsView
 from documents.views import BulkEditView
 from documents.views import ChatStreamingView
@@ -95,6 +99,19 @@ api_router.register(r"processed_mail", ProcessedMailViewSet)
 
 
 urlpatterns = [
+    path('api/research/authorize/', ResearchAuthorizeView.as_view()),
+    path('api/research/tasks/', ResearchTasksView.as_view()),
+    path('api/research/settings/', ResearchSettingsView.as_view()),
+    path('api/research/collections/', ResearchExchangeView.as_view()),
+    path('api/research/zotero/', ResearchExchangeView.as_view(), {'action': 'zotero'}),
+    path('api/research/arxiv/', ResearchExchangeView.as_view(), {'action': 'arxiv'}),
+    path('api/research/collections/<str:identifier>/<str:action>/', ResearchExchangeView.as_view()),
+    path('api/research/documents/<int:document_id>/tasks/<str:task_id>/cancel/', ResearchView.as_view(), {'action': 'cancel'}),
+    path('api/research/library/', ResearchLibraryView.as_view()),
+    path('api/research/documents/<int:document_id>/annotations/', ResearchAnnotationsView.as_view()),
+    path('api/research/documents/<int:document_id>/', ResearchView.as_view()),
+    path('api/research/documents/<int:document_id>/<str:action>/', ResearchView.as_view()),
+    path('api/research/documents/<int:document_id>/artifacts/<str:artifact_id>/', ResearchView.as_view(), {'action': 'artifacts'}),
     re_path(
         r"^api/",
         include(

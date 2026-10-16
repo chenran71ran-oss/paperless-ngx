@@ -75,12 +75,14 @@ import { PdfEditorEditMode } from '../../common/pdf-editor/pdf-editor-edit-mode'
 import { PdfZoomScale } from '../../common/pdf-viewer/pdf-viewer.types'
 import { SystemStatusDialogComponent } from '../../common/system-status-dialog/system-status-dialog.component'
 import { ComponentWithPermissions } from '../../with-permissions/with-permissions.component'
+import { ResearchSettingsComponent } from '../../research-library/research-settings.component'
 
 enum SettingsNavIDs {
   General = 1,
   Documents = 2,
   Permissions = 3,
   Notifications = 4,
+  Research = 5,
 }
 
 const systemLanguage = { code: '', name: $localize`Use system language` }
@@ -122,6 +124,7 @@ const sidebarItemLabels: Record<HideableSidebarItemID, string> = {
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.scss'],
   imports: [
+    ResearchSettingsComponent,
     PageHeaderComponent,
     CheckComponent,
     ColorComponent,

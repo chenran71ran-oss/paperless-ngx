@@ -114,7 +114,7 @@
     </div>
   </div>
 
-</pngx-page-header>
+<a class="btn btn-sm btn-outline-primary" routerLink="/research/library">我的阅读列表</a></pngx-page-header>
 
 <div class="row sticky-top py-3 mt-n2 mt-md-n3 bg-body rounded shadow-sm">
   <pngx-filter-editor [hidden]="isBulkEditing" [disabled]="isBulkEditing" [filterRules]="list.filterRules" (filterRulesChange)="onFilterRulesChange($event)" (resetFilterRules)="onFilterRulesReset($event)" [unmodifiedFilterRules]="unmodifiedFilterRules()" [selectionData]="list.selectionData" #filterEditor></pngx-filter-editor>

@@ -193,8 +193,10 @@ export class PngxPdfViewerComponent
       cMapUrl: new URL('assets/cmaps/', this.document.baseURI).toString(),
     }
     this.loadingTask = getDocument(initOptions)
+    const task = this.loadingTask
     try {
-      const pdf = await this.loadingTask.promise
+      const pdf = await task.promise
+      if (this.loadingTask !== task) return
       this.pdf = pdf
       this.linkService.setDocument(pdf)
       this.findController.onIsPageVisible = () => true
@@ -202,6 +204,7 @@ export class PngxPdfViewerComponent
       this.applyViewerState()
       this.afterLoadComplete.emit(pdf)
     } catch (err) {
+      if (this.loadingTask !== task) return
       this.loadError.emit(err)
     }
   }

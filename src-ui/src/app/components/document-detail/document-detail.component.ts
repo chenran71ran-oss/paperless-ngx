@@ -134,6 +134,8 @@ import {
 import { ShareLinksDialogComponent } from '../common/share-links-dialog/share-links-dialog.component'
 import { SuggestionsDropdownComponent } from '../common/suggestions-dropdown/suggestions-dropdown.component'
 import { DocumentNotesComponent } from '../document-notes/document-notes.component'
+import { ResearchMembershipComponent } from '../research-reader/research-membership.component'
+import { ResearchReaderComponent } from '../research-reader/research-reader.component'
 import { ComponentWithPermissions } from '../with-permissions/with-permissions.component'
 import { DocumentBarcodesComponent } from './document-barcodes/document-barcodes.component'
 import { DocumentHistoryComponent } from './document-history/document-history.component'
@@ -149,6 +151,7 @@ enum DocumentDetailNavIDs {
   Permissions = 6,
   History = 7,
   Duplicates = 8,
+  Research = 9,
 }
 
 enum ContentRenderType {
@@ -173,6 +176,8 @@ interface IncomingDocumentUpdate {
     PageHeaderComponent,
     CustomFieldsDropdownComponent,
     DocumentNotesComponent,
+    ResearchReaderComponent,
+    ResearchMembershipComponent,
     DocumentHistoryComponent,
     CheckComponent,
     DateComponent,

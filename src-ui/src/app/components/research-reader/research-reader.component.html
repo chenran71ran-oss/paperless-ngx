@@ -1,0 +1,553 @@
+<section class="research-reader">
+  <header class="reader-header">
+    <button type="button" class="research-button" (click)="back()">
+      ← 阅读列表
+    </button>
+    <h2>{{ bibliography["title"] || documentTitle || "研究阅读" }}</h2>
+    @if (state) {
+      <select
+        aria-label="阅读状态"
+        [(ngModel)]="personal.list_status"
+        [ngModelOptions]="{ standalone: true }"
+        (ngModelChange)="saveStatus()"
+      >
+        <option value="none">未加入</option>
+        <option value="inbox">待读</option>
+        <option value="reading">正在读</option>
+        <option value="completed">已读</option>
+      </select>
+      <button
+        type="button"
+        class="research-button"
+        [attr.aria-pressed]="personal.starred"
+        (click)="personal.starred = !personal.starred; saveStatus()"
+      >
+        {{ personal.starred ? "★ 星标" : "☆ 星标" }}
+      </button>
+      @if (state.can_import) {
+        <button
+          type="button"
+          class="research-button primary"
+          [disabled]="busy"
+          (click)="startTask('translation')"
+        >
+          翻译</button
+        ><button
+          type="button"
+          class="research-button primary"
+          [disabled]="busy"
+          (click)="startTask('analysis')"
+        >
+          解读
+        </button>
+      }
+      <span class="small text-muted">{{
+        state.tasks[0]
+          ? kindNames[state.tasks[0].kind] +
+            " · " +
+            statusNames[state.tasks[0].status]
+          : "暂无任务"
+      }}</span>
+    }
+  </header>
+  @if (error) {
+    <div class="reader-message" role="alert">{{ error }}</div>
+  }
+  @if (notice) {
+    <div class="reader-message" role="status">{{ notice }}</div>
+  }
+  @if (state?.ai_enabled && state?.can_import) {
+    <details class="reader-consent">
+      <summary>本篇外部处理授权</summary>
+      <p>{{ state.processing_notice }}</p>
+      <label
+        ><input
+          type="checkbox"
+          [(ngModel)]="confirmExternal"
+          [ngModelOptions]="{ standalone: true }"
+        />手动允许本篇进行一次外部处理（可能消耗额度）</label
+      ><label
+        ><input
+          type="checkbox"
+          [(ngModel)]="forceGenerate"
+          [ngModelOptions]="{ standalone: true }"
+        />明确重新生成，不复用已有产物</label
+      >
+    </details>
+  }
+  <div class="mobile-switch">
+    <button
+      type="button"
+      class="research-button"
+      [class.selected]="!mobilePanel"
+      (click)="mobilePanel = false"
+    >
+      PDF阅读</button
+    ><button
+      type="button"
+      class="research-button"
+      [class.selected]="mobilePanel"
+      (click)="mobilePanel = true; collapsed = false"
+    >
+      研究面板
+    </button>
+  </div>
+  <div
+    class="reader-workspace"
+    [class.panel-collapsed]="collapsed"
+    [class.mobile-panel]="mobilePanel"
+    [style.--panel-width]="panelWidth + '%'"
+  >
+    <div class="reader-pdf">
+      <nav class="pdf-toolbar" aria-label="PDF阅读工具">
+        <button
+          type="button"
+          class="research-button"
+          [class.selected]="view === 'original'"
+          (click)="switchView('original')"
+        >
+          原始PDF</button
+        ><button
+          type="button"
+          class="research-button"
+          [class.selected]="view === 'bilingual'"
+          (click)="switchView('bilingual')"
+        >
+          中英双语</button
+        ><button
+          type="button"
+          class="research-button"
+          [class.selected]="view === 'chinese'"
+          (click)="switchView('chinese')"
+        >
+          中文译本</button
+        ><button
+          type="button"
+          class="research-button"
+          (click)="collapsed = !collapsed; schedulePosition()"
+        >
+          {{ collapsed ? "展开研究面板" : "收起研究面板" }}
+        </button>
+      </nav>
+      <div class="pdf-controls">
+        <label
+          >页
+          <input
+            aria-label="PDF页码"
+            type="number"
+            min="1"
+            [max]="pages || 1"
+            [(ngModel)]="page"
+            [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="schedulePosition()"
+          />
+          / {{ pages || "—" }}</label
+        ><label
+          >缩放
+          <select
+            aria-label="PDF缩放"
+            [(ngModel)]="zoom"
+            [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="schedulePosition()"
+          >
+            @for (level of zooms; track level) {
+              <option [value]="level">{{ +level * 100 }}%</option>
+            }
+          </select></label
+        ><input
+          class="pdf-search"
+          aria-label="搜索PDF"
+          placeholder="搜索PDF"
+          [(ngModel)]="search"
+          [ngModelOptions]="{ standalone: true }"
+        />
+        @if (downloadUrl) {
+          <a class="research-button" [href]="downloadUrl" download>下载PDF</a>
+        }
+      </div>
+      @if (annotations.available() && annotations.capabilities().annotations) {
+        <nav class="pdf-controls" aria-label="PDF批注工具">
+          <button
+            type="button"
+            class="research-button"
+            (click)="annotations.port.tool(null)"
+          >
+            选择
+          </button>
+          <button
+            type="button"
+            class="research-button"
+            (click)="annotations.port.tool('highlight')"
+          >
+            高亮
+          </button>
+          <button
+            type="button"
+            class="research-button"
+            (click)="annotations.port.tool('underline')"
+          >
+            下划线
+          </button>
+          <button
+            type="button"
+            class="research-button"
+            (click)="annotations.port.tool('text')"
+          >
+            选文评论
+          </button>
+          <button
+            type="button"
+            class="research-button"
+            (click)="annotations.port.tool('rectangle')"
+          >
+            区域标记
+          </button>
+          <button
+            type="button"
+            class="research-button"
+            (click)="annotations.port.tool('ink')"
+          >
+            手绘
+          </button>
+          <button
+            type="button"
+            class="research-button"
+            (click)="annotations.port.rotate()"
+          >
+            旋转
+          </button>
+          <button
+            type="button"
+            class="research-button"
+            [disabled]="!annotations.capabilities().undo"
+            (click)="annotations.port.undo()"
+          >
+            撤销
+          </button>
+          <button
+            type="button"
+            class="research-button"
+            [disabled]="!annotations.capabilities().redo"
+            (click)="annotations.port.redo()"
+          >
+            重做
+          </button>
+          <span class="small" role="status">{{ annotations.status() }}</span>
+        </nav>
+      }
+      @if (view !== "original" && selectedArtifact) {
+        <p class="provenance">
+          {{
+            selectedArtifact.provenance === "manual_import_no_model"
+              ? "人工参考内容，未调用模型；不代表真实翻译通过。"
+              : selectedArtifact.provenance === "simulation"
+                ? "模拟内容，未调用真实模型。"
+                : selectedArtifact.provenance === "restored_unverified"
+                  ? "导入存档，来源未重新验证"
+                  : "已保存模型产物"
+          }}
+        </p>
+      }
+      <div class="pdf-canvas">
+        @if (pdfSource) {
+          <pngx-research-pdf
+            [source]="pdfSource"
+            [endpoint]="endpoint"
+            [selector]="annotationSelector"
+            [user]="readerUser"
+            [page]="page"
+            [zoom]="zoom"
+            [scroll]="positions[view]?.scroll || 0"
+            [rotation]="positions[view]?.rotation || 0"
+            [searchQuery]="search"
+            (pageChange)="pageChanged($event)"
+            (loaded)="pdfLoaded({ numPages: $event })"
+            (selected)="panel = 'annotations'; collapsed = false"
+          ></pngx-research-pdf>
+        } @else {
+          <div class="empty-state">
+            <h3>尚无{{ view === "bilingual" ? "双语PDF" : "中文译本" }}</h3>
+            <p>
+              原文仍可阅读。已有结果可人工导入；当前不会自动生成或调用模型。
+            </p>
+            <button
+              type="button"
+              class="research-button primary"
+              (click)="switchView('original')"
+            >
+              阅读原文
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+    <aside class="reader-panel" [hidden]="collapsed">
+      <nav class="panel-tabs" aria-label="研究面板">
+        <button
+          type="button"
+          class="research-button"
+          [class.selected]="panel === 'annotations'"
+          (click)="selectPanel('annotations')"
+        >
+          批注
+        </button>
+        <button
+          type="button"
+          class="research-button"
+          [class.selected]="panel === 'analysis'"
+          (click)="selectPanel('analysis')"
+        >
+          论文解读</button
+        ><button
+          type="button"
+          class="research-button"
+          [class.selected]="panel === 'notes'"
+          (click)="selectPanel('notes')"
+        >
+          个人笔记{{ dirty ? " •" : "" }}</button
+        ><button
+          type="button"
+          class="research-button"
+          [class.selected]="panel === 'bibliography'"
+          (click)="selectPanel('bibliography')"
+        >
+          学术信息
+        </button>
+      </nav>
+      <label class="panel-size"
+        >面板宽度
+        <input
+          aria-label="研究面板宽度"
+          type="range"
+          min="25"
+          max="55"
+          [(ngModel)]="panelWidth"
+          [ngModelOptions]="{ standalone: true }"
+          (ngModelChange)="schedulePosition()"
+      /></label>
+      <div class="panel-content" [hidden]="panel !== 'annotations'">
+        <pngx-annotation-panel
+          (append)="appendAnnotation($event)"
+        ></pngx-annotation-panel>
+      </div>
+      <div class="panel-content" [hidden]="panel !== 'analysis'">
+        @if (analysisArtifact) {
+          <p class="provenance">
+            {{
+              analysisArtifact.provenance === "manual_import_no_model"
+                ? "人工解读参考，未调用模型。"
+                : analysisArtifact.provenance === "simulation"
+                  ? "模拟解读，未验证真实模型。"
+                  : analysisArtifact.provenance === "restored_unverified"
+                    ? "导入存档，来源未重新验证"
+                    : "已保存解读"
+            }}
+            <a [href]="artifactUrl(analysisArtifact)" download>下载正文</a>
+          </p>
+        }
+        @if (analysisLoading) {
+          <p>正在加载已保存结果…</p>
+        }
+        @if (analysis) {
+          <article class="research-prose" [innerHTML]="analysis"></article>
+        } @else if (!analysisLoading) {
+          <div class="empty-state">
+            <h3>尚无论文解读</h3>
+            <p>
+              阅读不会自动创建任务。外部AI当前{{
+                state?.ai_enabled ? "需单篇授权" : "关闭"
+              }}。
+            </p>
+          </div>
+        }
+      </div>
+      <div class="panel-content" [hidden]="panel !== 'notes'">
+        <label class="w-100"
+          >我的笔记<textarea
+            aria-label="我的笔记"
+            rows="15"
+            class="form-control"
+            [(ngModel)]="personal.notes"
+            [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="draftChanged()"
+          ></textarea>
+        </label>
+        <p class="small text-muted">
+          仅当前账号可见，仍受文档权限约束。{{
+            dirty ? "有未保存修改" : "已保存"
+          }}
+        </p>
+        <button
+          type="button"
+          class="research-button primary"
+          (click)="savePersonal()"
+        >
+          保存笔记
+        </button>
+      </div>
+      <div class="panel-content" [hidden]="panel !== 'bibliography'">
+        @if (pending["title"]) {
+          <section class="border p-2 mb-2">
+            <h3>学术信息匹配确认</h3>
+            <p class="small">候选来自导入BibTeX；手动字段默认不覆盖。</p>
+            @for (field of bookKeys; track field) {
+              @if (pending[field]) {
+                <label class="d-block"
+                  ><input
+                    type="checkbox"
+                    [(ngModel)]="accepted[field]"
+                    [ngModelOptions]="{ standalone: true }"
+                  />{{ bookFields[field] }}：{{ pending[field] }}
+                  {{
+                    manualFields.includes(field) ? "（手动保护）" : ""
+                  }}</label
+                >
+              }
+            }
+            <button
+              type="button"
+              class="research-button primary"
+              (click)="confirmMetadata()"
+            >
+              确认选定字段
+            </button>
+          </section>
+        }
+        @for (field of bookKeys; track field) {
+          <label class="d-block mb-2"
+            >{{ bookFields[field]
+            }}<textarea
+              rows="1"
+              class="form-control"
+              [attr.aria-label]="'书目 ' + field"
+              [(ngModel)]="bibliography[field]"
+              [ngModelOptions]="{ standalone: true }"
+              [disabled]="!state?.can_import"
+            ></textarea>
+          </label>
+        }
+        @if (state?.can_import) {
+          <button
+            type="button"
+            class="research-button primary"
+            (click)="saveBibliography()"
+          >
+            保存书目
+          </button>
+        }
+        <button type="button" class="research-button" (click)="copyBibtex()">
+          复制BibTeX</button
+        ><a class="research-button" [href]="endpoint + 'bibtex/'" download
+          >导出BibTeX</a
+        >
+        @if (state?.can_import) {
+          <details class="mt-3">
+            <summary>导入单篇BibTeX</summary>
+            <textarea
+              aria-label="导入BibTeX"
+              class="form-control"
+              [(ngModel)]="bibtexImport"
+              [ngModelOptions]="{ standalone: true }"
+            ></textarea
+            ><button
+              type="button"
+              class="research-button"
+              (click)="saveBibliography(true)"
+            >
+              确认导入
+            </button>
+          </details>
+        }
+        <details class="mt-3">
+          <summary>研究数据导出与合并恢复</summary>
+          <p class="small">
+            仅包含本篇研究数据、当前账号笔记和衍生产物，不含Paperless原件、生产数据库或模型凭证。恢复仅补齐缺失项，不覆盖已有资料，不恢复运行任务。
+          </p>
+          <a class="research-button" [href]="endpoint + 'export/'" download
+            >导出研究数据包</a
+          >
+          @if (state?.can_import) {
+            <label class="d-block"
+              >合并导入本篇数据包<input
+                type="file"
+                accept=".zip"
+                aria-label="合并研究数据包"
+                (change)="restoreFile($event)"
+            /></label>
+          }
+        </details>
+      </div>
+    </aside>
+  </div>
+  @if (state) {
+    <details class="reader-details">
+      <summary>任务详情与已有产物</summary>
+      <button type="button" class="research-button" (click)="load()">
+        刷新任务
+      </button>
+      @for (task of state.tasks; track task.id) {
+        <div class="task-row">
+          {{ kindNames[task.kind] }} · {{ statusNames[task.status] }}
+          @if (task.stage && task.status === "running") {
+            <span>{{ task.stage }}</span>
+          }
+          @if (task.error_detail) {
+            <p>{{ task.error_detail }}</p>
+          }
+          @if (task.usage?.requests_started) {
+            <p>
+              外部请求 {{ task.usage.requests_started }} 次，收到响应
+              {{ task.usage.responses_received || 0 }} 次；
+              @if (task.usage.tokens?.total_tokens !== undefined) {
+                已报告 {{ task.usage.tokens.total_tokens }} tokens。
+              } @else {
+                服务未提供 token 用量。
+              }
+              实际费用未提供。
+            </p>
+          }
+          @if (
+            ["failed", "interrupted", "cancelled"].includes(task.status) &&
+            state.can_import
+          ) {
+            <button
+              type="button"
+              class="research-button"
+              [disabled]="busy || !state.ai_enabled"
+              (click)="startTask(task.kind, task.id)"
+            >
+              手动重试（需本篇授权）
+            </button>
+          }
+        </div>
+      }
+      @for (artifact of state.artifacts; track artifact.id) {
+        <p>
+          <a [href]="artifactUrl(artifact)" download
+            >{{ artifactNames[artifact.kind] }} · {{ artifact.title }}</a
+          >
+        </p>
+      }
+      @if (state.can_import) {
+        <label
+          >人工导入已有产物（不调用模型）<select
+            aria-label="研究结果类型"
+            [(ngModel)]="importKind"
+            [ngModelOptions]="{ standalone: true }"
+          >
+            <option value="reference_pdf">参考PDF</option>
+            <option value="translated_pdf">人工参考双语PDF</option>
+            <option value="chinese_pdf">人工参考中文PDF</option>
+            <option value="analysis_markdown">人工解读Markdown</option>
+            <option value="figure_png">解读PNG插图</option></select
+          ><input
+            type="file"
+            accept=".pdf,.md,.png"
+            aria-label="已有研究结果文件"
+            (change)="importFile($event)"
+        /></label>
+      }
+      <p class="small text-muted">{{ state.disabled_reason }}</p>
+    </details>
+  }
+</section>

@@ -1,3 +1,5 @@
+import { ResearchDiscoveryComponent } from './components/research-library/research-discovery.component'
+import { ResearchTasksComponent } from './components/research-library/research-tasks.component'
 import { NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { ConfigComponent } from './components/admin/config/config.component'
@@ -8,6 +10,7 @@ import { TrashComponent } from './components/admin/trash/trash.component'
 import { UsersAndGroupsComponent } from './components/admin/users-groups/users-groups.component'
 import { AppFrameComponent } from './components/app-frame/app-frame.component'
 import { DashboardComponent } from './components/dashboard/dashboard.component'
+import { ResearchLibraryComponent } from './components/research-library/research-library.component'
 import { DocumentAsnComponent } from './components/document-asn/document-asn.component'
 import { DocumentDetailComponent } from './components/document-detail/document-detail.component'
 import { DocumentListComponent } from './components/document-list/document-list.component'
@@ -33,6 +36,29 @@ export const routes: Routes = [
     component: AppFrameComponent,
     canDeactivate: [DirtyDocGuard],
     children: [
+      {
+        path: 'research/discovery',
+        component: ResearchDiscoveryComponent,
+        canActivate: [PermissionsGuard],
+        data: { requiredPermission: { action: PermissionAction.View, type: PermissionType.Document } },
+      },
+      {
+        path: 'research/settings',
+        redirectTo: '/settings/research',
+        pathMatch: 'full',
+      },
+      {
+        path: 'research/tasks',
+        component: ResearchTasksComponent,
+        canActivate: [PermissionsGuard],
+        data: { requiredPermission: { action: PermissionAction.View, type: PermissionType.Document } },
+      },
+      {
+        path: 'research/library',
+        component: ResearchLibraryComponent,
+        canActivate: [PermissionsGuard],
+        data: { requiredPermission: { action: PermissionAction.View, type: PermissionType.Document } },
+      },
       {
         path: 'dashboard',
         component: DashboardComponent,
