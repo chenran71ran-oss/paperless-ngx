@@ -635,23 +635,27 @@ export class ResearchReaderComponent implements OnChanges, OnDestroy {
           })
           DOMPurify.removeHook('uponSanitizeAttribute')
           const doc = new DOMParser().parseFromString(cleaned, 'text/html')
+          const allowedImages = new Set(
+            (this.state?.artifacts || [])
+              .filter((artifact) => artifact.kind === 'figure_png')
+              .map((artifact) => new URL(this.artifactUrl(artifact), location.origin).href)
+          )
           doc.querySelectorAll('img').forEach((image) => {
+            let allowed = false
             try {
               const url = new URL(
                 image.getAttribute('src') || '',
                 location.origin
               )
-              if (
-                url.origin !== location.origin ||
-                !url.pathname.startsWith(
-                  `/api/research/documents/${this.documentId}/artifacts/`
+              allowed = allowedImages.has(url.href)
+            } catch {}
+            if (allowed) image.loading = 'lazy'
+            else
+              image.replaceWith(
+                doc.createTextNode(
+                  '［图像未提供或来源无法验证，请在原文 PDF 中查看。］'
                 )
               )
-                image.remove()
-              else image.loading = 'lazy'
-            } catch {
-              image.remove()
-            }
           })
           doc.querySelectorAll('a').forEach((link) => {
             link.target = '_blank'
